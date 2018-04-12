@@ -55,14 +55,14 @@ router.push({ path: 'register', query: { plan: 'private' }})
 
 命名视图
 * 有时候想同时（同级）展示多个视图，而不是嵌套展示，这个时候命名视图就派上用场了。你可以在界面中拥有多个单独命名的视图，而不是只有一个单独的出口。如果 router-view 没有设置名字，那么默认为 default。
-* 此时路由的注册就需要使用components，而不是component了！
+* 此时路由的注册就需要使用 components ，而不是 component 了！
 
 重定向和别名
 * 定义 route 时设置 redirect 属性，重定向的目标可以是 path，可以是命名的路由，甚至可以是一个方法
 * 设置 route 的 alias 属性，别名的功能让你可以自由地将 UI 结构映射到任意的 URL，而不是受限于配置的嵌套路由结构。
 
 路由组件传参
-* 在组件中使用 $route  会使之与其对应路由形成高度耦合，从而使组件只能在某些特定的 URL 上使用，限制了其灵活性。使用 props 将组件和路由解耦
+* 在组件中使用 $route 会使之与其对应路由形成高度耦合，从而使组件只能在某些特定的 URL 上使用，限制了其灵活性。使用 props 将组件和路由解耦
 * 定义 route 的时候，设置props:true，route.params 将会被设置为组件属性。这里注意：对于包含命名视图的路由，你必须分别为每个命名视图添加 `props` 选项
 * props还可以是对象，函数模式
 
@@ -78,7 +78,7 @@ HTML5 History模式
 * 全局后置钩子：router.afterEach，和守卫不同的是，这些钩子不会接受 next 函数也不会改变导航本身
 * 路由独享的守卫，定义 route 的 beforeEnter
 * 组件内的守卫
-  * beforeRouteEnter：在渲染该组件的对应路由被 confirm 前调用，不！能！获取组件实例 `this`，不过，你可以通过传一个回调给 next来访问组件实例。在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数。
+  * beforeRouteEnter：在渲染该组件的对应路由被 confirm 前调用，不！能！获取组件实例 `this`，不过，你可以通过传一个回调给 next 来访问组件实例。在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数。
   * beforeRouteUpdate (2.2 新增)：在当前路由改变，但是该组件被复用时调用
   * beforeRouteLeave：导航离开该组件的对应路由时调用
 
@@ -123,4 +123,6 @@ watch: {
 * 把不同路由对应的组件分割成不同的代码块，然后当路由被访问的时候才加载对应组件
 * 结合 Vue 的异步组件和 Webpack 的代码分割功能，轻松实现路由组件的懒加载。
   1. 可以将异步组件定义为返回一个 Promise 的工厂函数 (该函数返回的 Promise 应该 resolve 组件本身)
-  2. 在 Webpack 2 中，我们可以使用动态 import语法来定义代码分块点 (split point)
+  2. 在 Webpack 2 中，我们可以使用动态 import 语法来定义代码分块点 (split point)
+* 其他方式
+  * component: resolve => require(['../components/PromiseDemo'], resolve)

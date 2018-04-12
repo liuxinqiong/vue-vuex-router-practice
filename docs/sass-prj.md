@@ -39,3 +39,10 @@ import @符号：webpack 设置的别名
   * text/xml：XML 结构还是过于臃肿，一般场景用 JSON 会更灵活方便。
 
 学习vuex
+
+路由结构
+—— login-view
+—— root-view
+  —— 左侧菜单
+  —— content-view
+    —— son-view 

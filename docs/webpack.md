@@ -95,9 +95,9 @@ webpack({
 ## 基本配置项
 
 ### entry 和 output
-entry 指定源文件
+entry 指定源入口文件
 
-output 指定编译配置，filename 指定编译后文件
+output 指定编译配置，告诉 webpack 打包好的文件存放在哪里，以及怎么命名，filename 指定编译后文件
 
 output.filename除了可以指定具体的文件名以外，还可以使用一些占位符，包括：
 * name 模块名称
@@ -308,3 +308,5 @@ http-proxy-middleware：设置代理
 # 资料
 * [webpack gitbook](https://webpack.toobug.net/zh-cn/)
 * [webpack 入门](https://github.com/huruji/blog/issues/3)
+* [不用create-react-app搭建基于webpack的react项目](https://www.chenliqiang.cn/post/webpack-react-without-create-react-app.html)
+* [webpack 文档](https://webpack.js.org/concepts/)
