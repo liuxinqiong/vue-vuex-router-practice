@@ -223,3 +223,345 @@ function Student(name) {
 * 如果一个函数被定义为用于创建对象的构造函数，但是调用时忘记了写new怎么办？
 * 在strict模式下，this.name = name将报错，因为this绑定为undefined，在非strict模式下，this.name = name不报错，因为this绑定为window，于是无意间创建了全局变量name，并且返回undefined，这个结果更糟糕。
 * 所以，调用构造函数千万不要忘记写new。为了区分普通函数和构造函数，按照约定，构造函数首字母应当大写，而普通函数首字母应当小写，这样，一些语法检查工具如jslint将可以帮你检测到漏写的new。
+
+### 原型继承
+在传统的基于Class的语言如Java、C++中，继承的本质是扩展一个已有的Class，并生成新的Subclass。
+
+由于这类语言严格区分类和实例，继承实际上是类型的扩展。但是，JavaScript由于采用原型继承，我们无法直接扩展一个Class，因为根本不存在Class这种类型。看下面的例子：
+```js
+function Student(props) {
+    this.name = props.name || 'Unnamed';
+}
+
+Student.prototype.hello = function () {
+    alert('Hello, ' + this.name + '!');
+}
+```
+
+我们要基于Student扩展出子PrimaryStudent，可以先定义出PrimaryStudent
+```js
+function PrimaryStudent(props){
+    Student.call(this,props)
+    this.grade = props.grade || 1;
+}
+```
+但是，调用了Student构造函数不等于继承了Student，PrimaryStudent创建的对象的原型是：
+```js
+new PrimaryStudent() ----> PrimaryStudent.prototype ----> Object.prototype ----> null
+```
+必须须想办法把原型链修改为：
+```js
+new PrimaryStudent() ----> PrimaryStudent.prototype ----> Student.prototype ----> Object.prototype ----> null
+```
+这样，原型链对了，继承关系就对了。新的基于PrimaryStudent创建的对象不但能调用PrimaryStudent.prototype定义的方法，也可以调用Student.prototype定义的方法。
+
+如果你想用最简单粗暴的方法这么干：
+```js
+PrimaryStudent.prototype = Student.prototype;
+```
+是不行的！如果这样的话，PrimaryStudent和Student共享一个原型对象，那还要定义PrimaryStudent干啥？他会有什么问题呢？
+1. 因为是直接重写prototype，因此如果PrimaryStudent的 prototype 上有自己的方法，就会被覆盖
+2. 父对象的属性不能访问到，因为直接原型链直接指向了父的prototype
+3. 会污染父prototype，子原型链上增加属性会影响到父元素原型链
+
+我们必须借助一个中间对象来实现正确的原型链，这个中间对象的原型要指向Student.prototype。为了实现这一点，参考道爷（就是发明JSON的那个道格拉斯）的代码，中间对象可以用一个空函数F来实现
+```js
+// 空函数F:
+function F() {
+}
+
+// 把F的原型指向Student.prototype:
+F.prototype = Student.prototype;
+
+// 把PrimaryStudent的原型指向一个新的F对象，F对象的原型正好指向Student.prototype:
+PrimaryStudent.prototype = new F();
+
+// 把PrimaryStudent原型的构造函数修复为PrimaryStudent:
+PrimaryStudent.prototype.constructor = PrimaryStudent;
+```
+
+注意，函数F仅用于桥接，我们仅创建了一个new F()实例，而且，没有改变原有的Student定义的原型链。
+
+如果把继承这个动作用一个inherits()函数封装起来，还可以隐藏F的定义，并简化代码：
+```js
+function inherits(Child, Parent) {
+    var F = function () {};
+    F.prototype = Parent.prototype;
+    Child.prototype = new F();
+    Child.prototype.constructor = Child;
+}
+
+// 可以用es 5.1提供的api简化
+function inherits(Child, Parent) {
+    Child.prototype = Object.create(Parent.prototype);
+    Child.prototype.constructor = Child;
+}
+```
+
+JavaScript的原型继承实现方式就是：
+* 定义新的构造函数，并在内部用call()调用希望“继承”的构造函数，并绑定this；
+* 借助中间函数F实现原型链继承，最好通过封装的inherits函数完成；
+* 继续在新的构造函数的原型上定义新方法。
+
+### class继承
+JavaScript的对象模型是基于原型实现的，特点是简单，缺点是理解起来比传统的类－实例模型要困难，最大的缺点是继承的实现需要编写大量代码，并且需要正确实现原型链。
+
+新的关键字class从ES6开始正式被引入到JavaScript中。class的目的就是让定义类更简单。本质就是原型链的语法糖，也就是上面的代码实现的。
+
+class的好处
+* 封装性更好，避免了类似Student.prototype.hello = function () {...}这样分散的代码
+* 对象创建和继承的最佳实践，比如方法挂载在原型链上，super调用父类构造并传参，同时简化代码，不需要开发者考虑原型继承的中间对象，原型对象的构造函数等等
+
+> ES6引入的class和原有的JavaScript原型继承有什么区别呢？实际上它们没有任何区别，class的作用就是让JavaScript引擎去实现原来需要我们自己编写的原型链代码。简而言之，用class的好处就是极大地简化了原型链代码。
+
+# 浏览器
+浏览器对象
+* window：不但充当全局作用域，而且表示浏览器窗口
+* navigator：表示浏览器的信息，很容易地被用户修改，所以JavaScript读取的值不一定是正确的。
+* screen：屏幕的信息
+* location：当前页面的URL信息，常用属性：protocol，host，port，pathname，search，hash
+* document
+  * 表示当前页面。由于HTML在浏览器中以DOM形式表示为树形结构，document对象就是整个DOM树的根节点
+  * document的title属性是从HTML文档中的`<title>xxx</title>`读取的，但是可以动态改变
+* history：保存了浏览器的历史记录
+
+操作DOM 和 操作表单
+
+操作文件
+* 在HTML表单中，可以上传文件的唯一控件就是`<input type="file">`。出于安全考虑，浏览器只允许用户点击`<input type="file">`来选择本地文件，用JavaScript对`<input type="file">`的value赋值是没有任何效果的。当用户选择了上传某个文件后，JavaScript也无法获得该文件的真实路径
+* 由于JavaScript对用户上传的文件操作非常有限，尤其是无法读取文件内容，使得很多需要操作文件的网页不得不用Flash这样的第三方插件来实现。
+* 随着HTML5的普及，新增的File API允许JavaScript读取文件内容，获得更多的文件信息。HTML5的File API提供了File和FileReader两个主要对象，可以获得文件信息并读取文件。
+* readAsDataURL读取到的文件是一个字符串base64编码，如果需要服务器端处理，把字符串base64,后面的字符发送给服务器并用Base64解码就可以得到原始文件的二进制内容。
+
+ajax跨域问题
+* 通过Flash插件发送HTTP请求，现在用得也越来越少了。
+* 通过在同源域名下架设一个代理服务器来转发，JavaScript负责把请求发送到代理服务器
+* 第三种方式称为JSONP，它有个限制，只能用GET请求，并且要求返回JavaScript。
+* 如果浏览器支持HTML5，那么就可以一劳永逸地使用新的跨域策略：CORS了。
+  * Origin表示本域，也就是浏览器当前页面的域。当JavaScript向外域（如sina.com）发起请求后，浏览器收到响应后，首先检查Access-Control-Allow-Origin是否包含本域，如果是，则此次跨域请求成功，如果不是，则请求失败，JavaScript将无法获取到响应的任何数据。
+  * 跨域能否成功，取决于对方服务器是否愿意给你设置一个正确的Access-Control-Allow-Origin，决定权始终在对方手中。
+  * 简单请求包括GET、HEAD和POST（POST的Content-Type类型仅限application/x-www-form-urlencoded、multipart/form-data和text/plain），并且不能出现任何自定义头（例如，X-Custom: 12345），通常能满足90%的需求。
+  * 最新的浏览器全面支持HTML5。在引用外域资源时，除了JavaScript和CSS外，都要验证CORS。
+  * 对于PUT、DELETE以及其他类型如application/json的POST请求，在发送AJAX请求之前，浏览器会先发送一个OPTIONS请求（称为preflighted请求）到这个URL上，询问目标服务器是否接受，浏览器确认服务器响应的Access-Control-Allow-Methods头确实包含将要发送的AJAX请求的Method，才会继续发送AJAX，否则，抛出一个错误。由于以POST、PUT方式传送JSON格式的数据在REST中很常见，所以要跨域正确处理POST和PUT请求，服务器端必须正确响应OPTIONS请求。
+
+Promise
+* Promise有各种开源实现，在ES6中被统一规范，由浏览器直接支持。
+* 简单例子
+```js
+var asyncJob = function(resolve,reject){
+    // 开始工作，完成调用resolve，失败调用reject
+}
+// 直接将任务丢给Promise构造函数即可
+var promise = new Promise(asyncJob);
+```
+* Promise最大的好处是在异步执行的流程中，把执行代码和处理结果的代码清晰地分离了
+* 有若干个异步任务，需要先做任务1，如果成功后再做任务2，任何任务失败则不再继续并执行错误处理函数。只需要在任务1完成时候，继续return一个异步任务的promise即可
+* 并行执行异步任务：Promise.all()
+* 多个异步任务是为了容错，同时向两个URL获取数据，只需要获得先返回的结果即可。这种情况下，用Promise.race()
+
+canvas
+* getContext('2d')方法让我们拿到一个CanvasRenderingContext2D对象，所有的绘图操作都需要通过这个对象完成。
+* 如果需要绘制3D怎么办？HTML5还有一个WebGL规范，允许在Canvas中绘制3D图形：gl = canvas.getContext("webgl");
+* 坐标系统：Canvas的坐标以左上角为原点，水平向右为X轴，垂直向下为Y轴，以像素为单位，所以每个点都是非负整数。
+* Canvas除了能绘制基本的形状和文本，还可以实现动画、缩放、各种滤镜和像素转换等高级操作。如果要实现非常复杂的操作，考虑以下优化方案：
+  * 通过创建一个不可见的Canvas来绘图，然后将最终绘制结果复制到页面的可见Canvas中；
+  * 尽量使用整数坐标而不是浮点数；
+  * 可以创建多个重叠的Canvas绘制不同的层，而不是在一个Canvas中绘制非常复杂的图；
+  * 背景图片如果不变可以直接用`<img>`标签并放到最底层。
+* 更多api单独学习
+
+jQuery：目前jQuery有1.x和2.x两个主要版本，区别在于2.x移除了对古老的IE 6、7、8的支持，因此2.x的代码更精简。选择哪个版本主要取决于你是否想支持IE 6~8。
+
+underscore：正如jQuery统一了不同浏览器之间的DOM操作的差异，让我们可以简单地对DOM进行操作，underscore则提供了一套完善的函数式编程的接口，让我们更方便地在JavaScript中实现函数式编程。
+
+# Node
+浏览器大战，有点意思啊
+* 微软通过IE击败了Netscape后一统桌面，结果几年时间，浏览器毫无进步。微软认为IE6浏览器已经非常完善，几乎没有可改进之处，然后解散了IE6开发团队
+* Google自己开发了一个高性能JavaScript引擎，名字叫V8，以BSD许可证开源。
+* 现代浏览器大战让微软的IE浏览器远远地落后了，因为他们解散了最有经验、战斗力最强的浏览器团队！回过头再追赶却发现，支持HTML5的WebKit已经成为手机端的标准了，IE浏览器从此与主流移动端设备绝缘。
+
+浏览器大战和Node有何关系？
+* 话说有个叫Ryan Dahl的歪果仁，他的工作是用C/C++写高性能Web服务。对于高性能，异步IO、事件驱动是基本原则，但是用C/C++写就太痛苦了。于是这位仁兄开始设想用高级语言开发Web服务。他评估了很多种高级语言，发现很多语言虽然同时提供了同步IO和异步IO，但是开发人员一旦用了同步IO，他们就再也懒得写异步IO了，所以，最终，Ryan瞄向了JavaScript。
+* 因为JavaScript是单线程执行，根本不能进行同步IO操作，所以，JavaScript的这一“缺陷”导致了它只能使用异步IO。
+* 2009年，Ryan正式推出了基于JavaScript语言和V8引擎的开源Web服务器项目，命名为Node.js。
+
+Node上运行的JavaScript相比其他后端开发语言有何优势？
+* 借助JavaScript天生的事件驱动机制加V8高性能引擎，使编写高性能Web服务轻而易举。
+* JavaScript语言本身是完善的函数式语言，在Node环境下，通过模块化的JavaScript代码，加上函数式编程，并且无需考虑浏览器兼容性问题，直接使用最新的ECMAScript 6标准，可以完全满足工程上的需求。
+
+给 mac 版 vscode 添加，右键菜单open with code，之前一直觉得不方便，这里终于可以[解决](https://www.liaoxuefeng.com/wiki/001434446689867b27157e896e74d51a89c25cc8b43bdb3000/001470969077294a6455fc9cd1f48b69f82cd05e7fa9b40000)了。
+
+### 模块
+* 在使用require()引入模块的时候，请注意模块的相对路径。如果只写模块名，则Node会依次在内置模块、全局模块和当前模块下查找
+* 这种模块加载机制被称为CommonJS规范。
+
+深入了解模块原理
+* 其实要实现“模块”这个功能，并不需要语法层面的支持。Node.js也并不会增加任何JavaScript语法。
+* JavaScript语言本身并没有一种模块机制来保证不同模块可以使用相同的变量名。实现“模块”功能的奥妙就在于JavaScript是一种函数式编程语言，它支持闭包。
+* Node利用JavaScript的函数式编程的特性，轻而易举地实现了模块的隔离。直接使用代码帮助理解
+```js
+// 准备module对象
+var module = {
+    id: 'hello',
+    exports: {}
+};
+var load = function (exports,module) {
+    // 读取的hello.js代码:
+    function greet(name) {
+        console.log('Hello, ' + name + '!');
+    }
+
+    module.exports = greet;
+    // hello.js代码结束
+    return module.exports;
+};
+var exported = load(module);
+// 保存module:
+save(module, exported);
+```
+  * 变量module是Node在加载js文件前准备的一个变量，并将其传入加载函数，我们在hello.js中可以直接使用变量module原因就在于它实际上是函数的一个参数
+  * 通过把参数module传递给load()函数，hello.js就顺利地把一个变量传递给了Node执行环境，Node会把module变量保存到某个地方。
+  * 由于Node保存了所有导入的module，当我们用require()获取module时，Node找到对应的module，把这个module的exports变量返回，这样，另一个模块就顺利拿到了模块的输出
+
+module.exports vs exports
+
+在Node环境中，有两种方法可以在一个模块中输出变量
+```js
+// 此方式有效
+module.exports = {
+    hello: hello,
+    greet: greet
+};
+
+// 此方式有效
+exports.hello = hello;
+exports.greet = greet;
+
+// 但是你不可以直接对exports赋值，将没有输出任何变量
+exports = {
+    hello: hello,
+    greet: greet
+};
+```
+其实看看上面的加载远离，就不难知道了
+* 一开始默认情况下，Node准备的exports变量和module.exports变量实际上是同一个变量，并且初始化为空对象{}
+* 记住load()函数最终返回module.exports
+* exports直接添加属性的话，是可以的，因为操作的实际是同一个变量，会反映到module.exports中，但是如果覆盖写的话，将改变指向，此时无法放映到module.exports中，因此也就不会有任何输出了
+
+### 基本模块
+服务器程序必须能接收网络请求，读写文件，处理二进制内容，所以，Node.js内置的常用模块就是为了实现基本的服务器功能。这些模块在浏览器环境中是无法被执行的，因为它们的底层代码是用C/C++在Node.js运行环境中实现的。
+* global：JavaScript有且仅有一个全局对象，在浏览器中，叫window对象。而在Node.js环境中，也有唯一的全局对象，但不叫window，而叫global，这个对象的属性和方法也和浏览器环境的window不同。
+* process也是Node.js提供的一个对象，它代表当前Node.js进程。
+  * JavaScript程序是由事件驱动执行的单线程模型，Node.js也不例外。如果我们想要在下一次事件响应中执行代码，可以调用process.nextTick()
+  * Node.js进程本身的事件就由process对象来处理。如果我们响应exit事件，就可以在程序即将退出时执行某个回调函数
+* fs
+  * Node.js内置的fs模块就是文件系统模块，负责读写文件。
+  * fs.readFile
+  * fs.writeFile
+  * fs.stat：获取文件大小，创建时间等信息
+* stream
+* http：Node.js开发的目的就是为了用JavaScript编写Web服务器程序。
+  * 要开发HTTP服务器程序，从头处理TCP连接，解析HTTP是不现实的。这些工作实际上已经由Node.js自带的http模块完成了。应用程序并不直接和HTTP协议打交道，而是操作http模块提供的request和response对象。
+  * 文件服务器：我们可以设定一个目录，然后让Web程序变成一个文件服务器。要实现这一点，我们只需要解析request.url中的路径，然后在本地找到对应的文件，把文件内容发送出去就可以了
+  * 解析URL需要用到Node.js提供的url模块，它使用起来非常简单，通过parse()将一个字符串解析为一个Url对象
+  * 处理本地文件目录需要使用Node.js提供的path模块，它可以方便地构造目录
+    * path.resolve('.') 当前目录
+    * path.join 组合路径
+* crypto
+  * 目的是为了提供通用的加密和哈希算法。用纯JavaScript代码实现这些功能不是不可能，但速度会非常慢。Nodejs用C/C++实现这些算法后，通过cypto这个模块暴露为JavaScript接口，这样用起来方便，运行速度也快。
+  * crypto.createHash('md5') md5可以换成其他hash算法
+
+> Node.js标准的回调函数：第一个参数代表错误信息，第二个参数代表结果。
+
+file-server.js
+```js
+'use strict';
+
+var
+    fs = require('fs'),
+    url = require('url'),
+    path = require('path'),
+    http = require('http');
+
+// 从命令行参数获取root目录，默认是当前目录:
+var root = path.resolve(process.argv[2] || '.');
+
+console.log('Static root dir: ' + root);
+
+// 创建服务器:
+var server = http.createServer(function (request, response) {
+    // 获得URL的path，类似 '/css/bootstrap.css':
+    var pathname = url.parse(request.url).pathname;
+    // 获得对应的本地文件路径，类似 '/srv/www/css/bootstrap.css':
+    var filepath = path.join(root, pathname);
+    // 获取文件状态:
+    fs.stat(filepath, function (err, stats) {
+        if (!err && stats.isFile()) {
+            // 没有出错并且文件存在:
+            console.log('200 ' + request.url);
+            // 发送200响应:
+            response.writeHead(200);
+            // 将文件流导向response: 没有必要手动读取文件内容。由于response对象本身是一个Writable Stream，直接用pipe()方法就实现了自动读取文件内容并输出到HTTP响应。
+            fs.createReadStream(filepath).pipe(response);
+        } else {
+            // 出错了或者文件不存在:
+            console.log('404 ' + request.url);
+            // 发送404响应:
+            response.writeHead(404);
+            response.end('404 Not Found');
+        }
+    });
+});
+
+server.listen(8080);
+```
+
+### web开发
+在Node.js诞生后的短短几年里，出现了无数种Web框架、ORM框架、模版引擎、测试框架、自动化构建工具，数量之多，即使是JavaScript老司机，也不免眼花缭乱。
+* 常见的Web框架包括：Express，Sails.js，koa，Meteor，DerbyJS，Total.js，restify……
+* ORM框架比Web框架要少一些：Sequelize，ORM2，Bookshelf.js，Objection.js……
+* 模版引擎PK：Jade，EJS，Swig，Nunjucks，doT.js……
+* 测试框架包括：Mocha，Expresso，Unit.js，Karma……
+* 构建工具有：Grunt，Gulp，Webpack……
+
+#### koa
+koa是Express的下一代基于Node.js的web框架，目前有1.x和2.0两个版本。
+
+历史
+* Express
+  * Express是第一代最流行的web框架，它对Node.js的http进行了封装
+  * 基于ES5的语法，要实现异步代码，只有一个方法：回调。
+* koa 1.0
+  * 随着新版Node.js开始支持ES6，Express的团队又基于ES6的generator重新编写了下一代web框架koa。
+  * koa 1.0使用generator实现异步
+* koa2
+  * 基于ES7开发了koa2
+  * koa2完全使用Promise并配合async来实现异步
+  * 出于兼容性考虑，目前koa2仍支持generator的写法，但下一个版本将会去掉。
+
+基础
+* 理解use，参数ctx是由koa传入的封装了request和response的变量，我们可以通过它访问request和response，next是koa传入的将要处理的下一个异步函数。
+* 理解中间件概念，其实和express类似
+  * 每收到一个http请求，koa就会调用通过app.use()注册的async函数，并传入ctx和next参数。
+  * 用await next()来调用下一个async函数
+  * middleware的顺序很重要
+
+koa-router
+* const router = require('koa-router')();
+* get/post/
+* app.use(router.routes());
+
+用post请求处理URL时，我们会遇到一个问题：post请求通常会发送一个表单，或者JSON，它作为request的body发送，但无论是Node.js提供的原始request对象，还是koa提供的request对象，都不提供解析request的body的功能！
+
+我们又需要引入另一个middleware来解析原始request请求，然后，把解析后的参数，绑定到ctx.request.body中。koa-bodyparser就是用来干这个活的。
+
+重构
+* 所有的URL处理函数都放到app.js里显得很乱，而且，每加一个URL，就需要修改app.js。随着URL越来越多，app.js就会越来越长。
+* 如果能把URL处理函数集中到某个js文件，或者某几个js文件中就好了，然后让app.js自动导入所有处理URL的函数。这样，代码一分离，逻辑就显得清楚了。
+  * 分离到几个文件中，操作比较简单，但是自动实现导入才是关键，但是注册路径和处理函数的代码其实都是一样的逻辑
+  * 将路由处理集中到一个文件夹中，每个js文件按照{path:handle}的规则导出
+  * 使用fs模块自动扫描文件夹，require导出，开循环注册即可
+
+> 其实代码并不复杂，佩服的是作者思考代码重构能力和习惯
+
+nunjucks：模版引擎
