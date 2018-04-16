@@ -729,3 +729,142 @@ WebSocket协议
 > 为什么WebSocket连接可以实现全双工通信而HTTP连接不行呢？实际上HTTP协议是建立在TCP协议之上的，TCP协议本身就实现了全双工通信，但是HTTP协议的请求－应答机制限制了全双工通信。WebSocket连接建立以后，其实只是简单规定了一下：接下来，咱们通信就不使用HTTP协议了，直接互相发数据吧。
 
 安全的WebSocket连接机制和HTTPS类似。首先，浏览器用wss://xxx创建WebSocket连接时，会先通过HTTPS创建安全的连接，然后，该HTTPS连接升级为WebSocket连接，底层通信走的仍然是安全的SSL/TLS协议。
+
+同源策略：WebSocket协议本身不要求同源策略（Same-origin Policy），也就是某个地址为`http://a.com`的网页可以通过WebSocket连接到`ws://b.com`。但是，浏览器会发送Origin的HTTP头给服务器，服务器可以根据Origin拒绝这个WebSocket请求。所以，是否要求同源要看服务器端如何检查。
+
+和koa应用共用端口
+
+统一端口有个最大的好处：实际应用中，HTTP和WebSocket都使用标准的80和443端口，不需要暴露新的端口，也不需要修改防火墙规则。
+```js
+// koa app的listen()方法返回http.Server:
+let server = app.listen(3000);
+
+// 创建WebSocketServer:
+let wss = new WebSocketServer({
+    server: server
+});
+```
+
+在koa应用中，可以很容易地认证用户，例如，通过session或者cookie，但是，在响应WebSocket请求时，如何识别用户身份？
+
+WS请求也是标准的HTTP请求，所以，服务器也会把Cookie发送过来，这样，我们在用WebSocketServer处理WS请求时，就可以根据Cookie识别用户身份。
+
+配置反向代理
+* 如果网站配置了反向代理，例如Nginx，则HTTP和WebSocket都必须通过反向代理连接Node服务器。HTTP的反向代理非常简单，但是要正常连接WebSocket，代理服务器必须支持WebSocket协议。
+* 通过proxy_set_header指令，设置 Upgrade 和 Connection 头，Nginx即可理解该连接将使用 WebSocket 协议。
+* 示例配置
+```shell
+server {
+    listen      80;
+    server_name localhost;
+
+    # 处理静态资源文件:
+    location ^~ /static/ {
+        root /path/to/ws-with-koa;
+    }
+
+    # 处理WebSocket连接:
+    location ^~ /ws/ {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+    }
+
+    # 其他所有请求:
+    location / {
+        proxy_pass       http://127.0.0.1:3000;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+### REST
+自从Roy Fielding博士在2000年他的博士论文中提出REST（Representational State Transfer）风格的软件架构模式后，REST就基本上迅速取代了复杂而笨重的SOAP，成为Web API的标准了。
+
+REST就是一种设计API的模式。最常用的数据格式是JSON。由于JSON能直接被JavaScript读取，所以，以JSON格式编写的REST风格的API具有简单、易读、易用的特点。
+
+编写API有什么好处呢？由于API就是把Web App的功能全部封装了，所以，通过API操作数据，可以极大地把前端和后端的代码隔离，使得后端代码易于测试，前端代码编写更简单。
+
+REST API规范
+* REST请求仍然是标准的HTTP请求，但是，除了GET请求外，POST、PUT等请求的body是JSON数据格式，请求的Content-Type为application/json；
+* REST响应返回的结果是JSON数据格式，因此，响应的Content-Type也是application/json。
+* REST规范定义了资源的通用访问格式，虽然它不是一个强制要求，但遵守该规范可以让人易于理解。
+  * HTTP VERB
+  * ...
+
+使用REST和使用MVC是类似的，不同的是，提供REST的Controller处理函数最后不调用render()去渲染模板，而是把结果直接用JSON序列化返回给客户端。
+
+使用REST虽然非常简单，但是，设计一套合理的REST框架却需要仔细考虑很多问题。
+* 如何组织URL
+  * 在实际工程中，一个Web应用既有REST，还有MVC，可能还需要集成其他第三方系统。如何组织URL？
+  * 一个简单的方法是通过固定的前缀区分。/static/开头的URL是静态资源文件，类似的，/api/开头的URL就是REST API，其他URL是普通的MVC请求。
+  * 使用不同的子域名也可以区分，但对于中小项目来说配置麻烦。随着项目的扩大，将来仍然可以把单域名拆成多域名。
+* 如何统一输出REST
+  * 每次都要设置Content-Type和response.body，代码重复且易出错
+  * 可通过中间件的方式解决，类似于模版引擎
+  * 由于我们给所有REST API一个固定的URL前缀/api/，所以，这个middleware还需要根据path来判断当前请求是否是一个REST请求，如果是，我们才给ctx绑定rest()方法。
+* 如何处理错误
+  * 当REST API请求出错时，我们如何返回错误信息？
+  * 当客户端收到REST响应后，如何判断是成功还是错误？
+  * 一类是类似403，404，500等错误，这些错误实际上是HTTP请求可能发生的错误。REST请求只是一种请求类型和响应类型均为JSON的HTTP请求，因此，这些错误在REST请求中也会发生。针对这种类型的错误，客户端除了提示用户“出现了网络错误，稍后重试”以外，并无法获得具体的错误信息。
+  * 另一类错误是业务逻辑的错误，例如，输入了不合法的Email地址，试图删除一个不存在的Product，等等。这种类型的错误完全可以通过JSON返回给客户端，这样，客户端可以根据错误信息提示用户“Email不合法”等，以便用户修复后重新请求API。
+  * 第一类的错误实际上客户端可以识别，并且我们也无法操控HTTP服务器的错误码。
+  * 第二类的错误信息是一个JSON字符串
+    * 这种情况下，HTTP的返回码应该用啥？
+    * 有的使用200，然后根据json判断是否出错，这种方式对于动态语言（例如，JavaScript，Python等）非常容易，对于静态语言（例如，Java）就比较麻烦，很多时候，不得不做两次序列化
+    * 有的对正确的REST响应使用200，对错误的REST响应使用400，这样，客户端即是静态语言，也可以根据HTTP响应码判断是否出错，出错时直接把结果反序列化为APIError对象。
+    * 推荐使用第二种，200表示成功响应，400表示失败响应。
+* 如何定义错误码
+    * REST架构本身同样没有标准的错误码定义一说，因此，有的Web应用使用数字1000、1001……作为错误码，例如Twitter和新浪微博，有的Web应用使用字符串作为错误码，例如YouTube。到底哪一种比较好呢？
+    * 我们强烈建议使用字符串作为错误码。原因在于，使用数字作为错误码时，API提供者需要维护一份错误码代码说明表，并且，该文档必须时刻与API发布同步，否则，客户端开发者遇到一个文档上没有写明的错误码，就完全不知道发生了什么错误。
+    * 使用字符串作为错误码，最大的好处在于不用查表，根据字面意思也能猜个八九不离十。
+    * 错误格式如下，错误代码命名规范为大类:子类，例如，口令不匹配的登录错误代码为auth:bad_password，用户名不存在的登录错误代码为auth:user_not_found。这样，客户端既可以简单匹配某个类别的错误，也可以精确匹配某个特定的错误。
+    ```js
+    {
+        "code": "错误代码",
+        "message": "错误描述信息"
+    }
+    ```
+* 如何返回错误
+  * 如果一个REST异步函数想要返回错误，一个直观的想法是调用ctx.rest()，但是这样会导致控制流程会混乱，而且，错误只能在Controller函数中输出。
+  * 更好的方式是异步函数直接用throw语句抛出错误，让middleware去处理错误
+  * 这个错误处理的好处在于，不但简化了Controller的错误处理（只需要throw，其他不管），并且，在遇到非APIError的错误时，自动转换错误码为internal:unknown_error。
+  * 受益于async/await语法，我们在middleware中可以直接用try...catch捕获异常。如果是callback模式，就无法用try...catch捕获，代码结构将混乱得多。
+
+我们在这个工程中约定了如下规范：
+* REST API的返回值全部是object对象，而不是简单的number、boolean、null或者数组；
+  * 第一条规则实际上是为了方便客户端处理结果。如果返回结果不是object，则客户端反序列化后还需要判断类型。
+* REST API必须使用前缀/api/。
+
+> 绝不能混合其他HTTP错误码。例如，使用401响应“登录失败”，使用403响应“权限不够”。这会使客户端无法有效识别HTTP错误码和业务错误，其原因在于HTTP协议定义的错误码十分偏向底层，而REST API属于“高层”协议，不应该复用底层的错误码。
+
+### MVVM
+前端发展的历史
+* 1989年，欧洲核子研究中心的物理学家Tim Berners-Lee发明了超文本标记语言（HyperText Markup Language），简称HTML，并在1993年成为互联网草案。
+* 最早的HTML页面是完全静态的网页，它们是预先编写好的存放在Web服务器上的html文件。
+* 后来服务器需要针对不同的用户，动态生成不同的html文件。一个最直接的想法就是利用C、C++这些编程语言，直接向浏览器输出拼接后的字符串。这种技术被称为CGI：Common Gateway Interface。
+* 人们又发现，其实拼字符串的时候，大多数字符串都是HTML片段，是不变的，变化的只有少数和用户相关的数据，所以，又出现了新的创建动态HTML的方式：ASP、JSP和PHP——分别由微软、SUN和开源社区开发。
+* 但是，一旦浏览器显示了一个HTML页面，要更新页面内容，唯一的方法就是重新向服务器获取一份新的HTML内容。如果浏览器想要自己修改HTML页面的内容，就需要等到1995年年底，JavaScript被引入到浏览器。
+  * 第一阶段，直接用JavaScript操作DOM节点，使用浏览器提供的原生API
+  * 第二阶段，由于原生API不好用，还要考虑浏览器兼容性，jQuery横空出世
+  * 第三阶段，MVC模式，需要服务器端配合，JavaScript可以在前端修改服务器渲染后的数据。
+  * 随着前端页面越来越复杂，用户对于交互性要求也越来越高，仅仅用jQuery是远远不够的。MVVM模型应运而生。
+
+MVVM模型
+* MVVM最早由微软提出来，它借鉴了桌面应用程序的MVC思想，在前端页面中，把Model用纯JavaScript对象表示，View负责显示，两者做到了最大限度的分离。
+* 把Model和View关联起来的就是ViewModel。ViewModel负责把Model的数据同步到View显示出来，还负责把View的修改同步回Model。
+* ViewModel如何编写？需要用JavaScript编写一个通用的ViewModel，这样，就可以复用整个MVVM模型了。
+* 这让我们的关注点从如何操作DOM变成了如何更新JavaScript对象的状态，而操作JavaScript对象比DOM简单多了！
+
+> 关注Model的变化，让MVVM框架去自动更新DOM的状态，从而把开发者从操作DOM的繁琐步骤中解脱出来！
+
+MVVM的适用范围
+* MVVM最大的优势是编写前端逻辑非常复杂的页面，尤其是需要大量DOM操作的逻辑，利用MVVM可以极大地简化前端页面的逻辑。
+* 对于以展示逻辑为主的页面，例如，新闻，博客、文档等，不能使用MVVM展示数据，因为这些页面需要被搜索引擎索引，而搜索引擎无法获取使用MVVM并通过API加载的数据。
+* 需要SEO（Search Engine Optimization）的页面，不能使用MVVM展示数据。不需要SEO的页面，如果前端逻辑复杂，就适合使用MVVM展示数据，例如，工具类页面，复杂的表单页面，用户登录后才能操作的页面等等。
+
+# 来源
+* [JavaScript教程](https://www.liaoxuefeng.com/wiki/001434446689867b27157e896e74d51a89c25cc8b43bdb3000)
