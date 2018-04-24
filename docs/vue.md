@@ -1,3 +1,5 @@
+**wait for collation into blog**
+
 ## Vue 对象
 * el 指定元素
 * data 组件数据

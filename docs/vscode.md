@@ -1,3 +1,5 @@
+**wait for collation into blog**
+
 Vscode vue文件没有语法高亮，安装vetur扩展即可。
 
 Vscode 格式化vue Template代码段

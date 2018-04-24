@@ -1,3 +1,5 @@
+**wait for collation into blog**
+
 在一个模块化的打包系统中，您必须显式地通过 Vue.use() 来启用 Vuex
 
 Vuex 依赖 Promise。如果你支持的浏览器并没有实现 Promise (比如 IE)，那么你可以使用一个 polyfill 的库，例如 es6-promise。
