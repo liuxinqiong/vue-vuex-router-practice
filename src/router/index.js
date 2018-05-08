@@ -1,10 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HelloWorld from '@/components/HelloWorld'
-import Page1 from '@/components/Page1'
+import HelloWorld from '@/pages/HelloWorld'
+import finder from '@/pages/finder'
+// import task from '@/pages/task'
 
-
-Vue.use(Router)
+Vue.use(Router);
 
 export default new Router({
   routes: [{
@@ -13,9 +13,13 @@ export default new Router({
       component: HelloWorld
     },
     {
-      path: '/page1',
-      name: 'Page1',
-      component: Page1
-    }
-  ]
+      path: '/finder',
+      name: 'finder',
+      component: finder
+    },
+    {
+      path: '/task',
+      name: 'task',
+      component: () => import('@/pages/task') // 组件懒加载
+    }]
 })

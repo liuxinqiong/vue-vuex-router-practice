@@ -34,6 +34,7 @@ module.exports = {
     'arrow-spacing':'off',
     'comma-spacing':'off',
     'no-trailing-spaces':'off',
-    'comma-dangle':'off'
+    'comma-dangle':'off',
+    'func-call-spacing':'off'
   }
 }
