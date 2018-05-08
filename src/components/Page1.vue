@@ -10,9 +10,9 @@
 </template>
 
 <script>
-import Com1 from './Com1.vue'
-import Com2 from './Com2.vue'
-import Com3 from './Com3.vue'
+// import Com1 from './Com1.vue'
+// import Com2 from './Com2.vue'
+// import Com3 from './Com3.vue'
 export default {}
 </script>
 
