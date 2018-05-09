@@ -35,6 +35,7 @@ module.exports = {
     'comma-spacing':'off',
     'no-trailing-spaces':'off',
     'comma-dangle':'off',
-    'func-call-spacing':'off'
+    'func-call-spacing':'off',
+    'eol-last':'off'
   }
 }

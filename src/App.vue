@@ -7,6 +7,7 @@
           <li><router-link to='/'>hello world</router-link></li>
           <li><router-link to='/finder'>资源管理</router-link></li>                    
           <li><router-link to='/task'>任务</router-link></li>
+          <li><router-link to='/vuex'>vuex test</router-link></li>          
         </ul>
       </div>
       <div class="content">
