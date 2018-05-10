@@ -28,8 +28,13 @@ const router = new Router({
     },
     {
       path:'/vuex',
-      name:'task',
+      name:'vuex',
       component: () => import('@/pages/vuex')
+    },
+    {
+      path:'/drag',
+      name:'drag',
+      component: () => import('@/pages/draglist.vue')
     }
   ],
   scrollBehavior(to,from,savedPosition){
@@ -38,8 +43,8 @@ const router = new Router({
 })
 
 router.beforeEach((to,from,next) => {
-  console.log(to)
-  console.log(to.matched)
+  // console.log(to)
+  // console.log(to.matched)
   next()
 })
 
