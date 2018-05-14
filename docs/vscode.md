@@ -1,11 +1,9 @@
-**wait for collation into blog**
-
 Vscode vue文件没有语法高亮，安装vetur扩展即可。
 
 Vscode 格式化vue Template代码段
 1. 安装 vetur
 2. 在User Setting中增加设置:
-```
+```shell
 "vetur.format.defaultFormatter.html": "js-beautify-html"
 ```
 
