@@ -10,6 +10,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const HappyPack = require('happypack')
 
 const env = process.env.NODE_ENV === 'testing'
   ? require('../config/test.env')
@@ -30,6 +31,22 @@ const webpackConfig = merge(baseWebpackConfig, {
     chunkFilename: utils.assetsPath('js/[id].[chunkhash].js')
   },
   plugins: [
+
+    new HappyPack({
+      id: 'vue',
+      loaders: [{
+        loader: 'vue-loader',
+        option: require('./vue-loader.conf')
+      }],
+    }),
+
+    new webpack.DllReferencePlugin({
+      manifest: require('../src/dll/ui-manifest.json')
+    }),
+    new webpack.DllReferencePlugin({
+      manifest: require('../src/dll/vue-manifest.json')
+    }),
+
     // http://vuejs.github.io/vue-loader/en/workflow/production.html
     new webpack.DefinePlugin({
       'process.env': env
@@ -41,7 +58,8 @@ const webpackConfig = merge(baseWebpackConfig, {
         }
       },
       sourceMap: config.build.productionSourceMap,
-      parallel: true
+      parallel: true, // 平行加速
+      cache: true // 开启缓存
     }),
     // extract css into its own file
     new ExtractTextPlugin({
@@ -85,7 +103,7 @@ const webpackConfig = merge(baseWebpackConfig, {
     // split vendor js into its own file
     new webpack.optimize.CommonsChunkPlugin({
       name: 'vendor',
-      minChunks (module) {
+      minChunks(module) {
         // any required modules inside node_modules are extracted to vendor
         return (
           module.resource &&
