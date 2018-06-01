@@ -1,15 +1,27 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+    <button @click="showNotice">Notice</button>
+    <button @click="showNotice1">Notice</button>    
   </div>
 </template>
 
 <script>
+  import notice from '../components/notice'
+  import notice1 from '../components/notice1'
   export default {
     name: 'HelloWorld',
     data() {
       return {
         msg: 'Welcome to Your Vue.js App'
+      }
+    },
+    methods:{
+      showNotice(){
+        notice.info('hahahahahahha')
+      },
+      showNotice1(){
+        notice1.info('hahahahahahha')
       }
     }
   }
