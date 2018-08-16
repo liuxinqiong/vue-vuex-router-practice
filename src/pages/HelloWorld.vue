@@ -2,7 +2,8 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <button @click="showNotice">Notice</button>
-    <button @click="showNotice1">Notice</button>    
+    <button @click="showNotice1">Notice</button>
+    <anchored-heading :level="level">标题3</anchored-heading>
   </div>
 </template>
 
@@ -13,7 +14,8 @@
     name: 'HelloWorld',
     data() {
       return {
-        msg: 'Welcome to Your Vue.js App'
+        msg: 'Welcome to Your Vue.js App',
+        level: 3
       }
     },
     methods:{

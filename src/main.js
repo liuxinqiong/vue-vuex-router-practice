@@ -6,34 +6,37 @@ import router from './router'
 import store from './vuex'
 import routes from '@/routes';
 import { Button, Select } from 'element-ui'
+import globalComponents from './component'
 
 Vue.component(Button.name, Button)
 Vue.component(Select.name, Select)
 
 Vue.config.productionTip = false
 
+globalComponents(Vue)
+
 // 有问题
-Vue.directive("count-down", {
-  bind: function (el, binding, vnode) {
-    let count = parseInt(el.getAttribute('data-count'))
-    console.log(this)
-    if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
-    }
-    // 大家可以推测下这里的 this 指什么？
-    this.timer = setInterval(function () {
-      if (count <= 0) {
-        clearInterval(this.timer)
-        this.timer = null
-      } else {
-        count--
-        el.innerHTML = count
-        el.setAttribute('data-count', count)
-      }
-    }, 1000)
-  }
-})
+// Vue.directive("count-down", {
+//   bind: function (el, binding, vnode) {
+//     let count = parseInt(el.getAttribute('data-count'))
+//     console.log(this)
+//     if (this.timer) {
+//       clearInterval(this.timer)
+//       this.timer = null
+//     }
+//     // 大家可以推测下这里的 this 指什么？
+//     this.timer = setInterval(function () {
+//       if (count <= 0) {
+//         clearInterval(this.timer)
+//         this.timer = null
+//       } else {
+//         count--
+//         el.innerHTML = count
+//         el.setAttribute('data-count', count)
+//       }
+//     }, 1000)
+//   }
+// })
 
 /* eslint-disable no-new */
 const app = new Vue({

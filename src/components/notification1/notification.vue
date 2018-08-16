@@ -1,6 +1,6 @@
 <template>
     <div>
-        <notice v-for="notice in notices"
+        <notice v-for="(notice, index) in notices" :key="index"
             :content="notice.content">
         </notice>
     </div>
@@ -24,7 +24,7 @@
                 this.notices.push(notice);
                 console.log(this.notices);
             },
-            close () { 
+            close () {
                 this.notices = []
             }
         }

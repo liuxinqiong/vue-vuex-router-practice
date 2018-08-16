@@ -5,10 +5,10 @@
         <img class="logo" src="./assets/logo.png">
         <ul>
           <li><router-link to='/'>hello world</router-link></li>
-          <li><router-link to='/finder'>资源管理</router-link></li>                    
+          <li><router-link to='/finder'>资源管理</router-link></li>
           <li><router-link to='/task'>任务</router-link></li>
-          <li><router-link to='/vuex'>vuex test</router-link></li>        
-          <li><router-link to='/drag'>拖拽组件</router-link></li>                      
+          <li><router-link to='/vuex'>vuex test</router-link></li>
+          <li><router-link to='/drag'>拖拽组件</router-link></li>
         </ul>
       </div>
       <div class="content">
@@ -24,7 +24,7 @@
     name: 'App',
     data() {
       return {
-        
+
       }
     },
     beforeCreate() {

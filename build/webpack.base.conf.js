@@ -43,7 +43,8 @@ module.exports = {
       ...(config.dev.useEslint ? [createLintingRule()] : []),
       {
         test: /\.vue$/,
-        loader: 'happypack/loader?id=vue',
+        loader: 'vue-loader',
+        // loader: 'happypack/loader?id=vue',
         // options: vueLoaderConfig
       },
       {
