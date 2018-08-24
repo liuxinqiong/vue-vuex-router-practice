@@ -4,6 +4,16 @@
     <button @click="showNotice">Notice</button>
     <button @click="showNotice1">Notice</button>
     <anchored-heading :level="level">标题3</anchored-heading>
+    <toggle>
+      <div slot-scope="{ on, setOn, setOff }" class="container">
+        <button @click="click(setOn)" class="button">Blue pill</button>
+        <button @click="click(setOff)" class="button isRed">Red pill</button>
+        <div v-if="buttonPressed" class="message">
+          <span v-if="on">It's all a dream, go back to sleep.</span>
+          <span v-else>I don't know how far the rabbit hole goes, I'm not a rabbit, neither do I measure holes.</span>
+        </div>
+      </div>
+    </toggle>
   </div>
 </template>
 
@@ -15,16 +25,21 @@
     data() {
       return {
         msg: 'Welcome to Your Vue.js App',
-        level: 3
+        level: 3,
+        buttonPressed: false,
       }
     },
-    methods:{
-      showNotice(){
+    methods: {
+      showNotice() {
         notice.info('hahahahahahha')
       },
-      showNotice1(){
+      showNotice1() {
         notice1.info('hahahahahahha')
-      }
+      },
+      click(fn) {
+        this.buttonPressed = true
+        fn()
+      },
     }
   }
 

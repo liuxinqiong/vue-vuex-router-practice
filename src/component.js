@@ -1,4 +1,7 @@
+import toggle from './components/toggle/toggle'
+
 export default (Vue) => {
+  Vue.component('toggle', toggle)
   //   Vue.component('anchored-heading', {
   //     render(createElement) {
   //       // createElement 返回虚拟节点（VNode）
